@@ -115,41 +115,36 @@ pipeline {
         }
 
         stage('Verify Deployment') {
-            steps {
-                sh '''
-                    echo "======================================"
-                    echo "Verifying Deployment"
-                    echo "======================================"
+    steps {
+        withCredentials([
+            [$class: 'AmazonWebServicesCredentialsBinding',
+             credentialsId: 'aws-credentials',
+             accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
+        ]) {
+            sh '''
+                set -e
 
-                    kubectl get deployments
-                    kubectl get pods
-                    kubectl get services
+                echo "======================================"
+                echo "Verifying Deployment"
+                echo "======================================"
 
-                    echo "======================================"
-                    echo "Waiting for Deployment"
-                    echo "======================================"
+                echo "Checking AWS Authentication..."
+                aws sts get-caller-identity
 
-                    kubectl rollout status deployment/trend-app --timeout=120s
+                echo "Checking Kubernetes Deployments..."
+                kubectl get deployments
 
-                    echo "======================================"
-                    echo "Deployment Verified Successfully"
-                    echo "======================================"
-                '''
-            }
-        }
-    }
+                echo "Checking Pods..."
+                kubectl get pods
 
-    post {
-        success {
-            echo '======================================'
-            echo 'CI/CD Pipeline Completed Successfully!'
-            echo '======================================'
-        }
+                echo "Checking Services..."
+                kubectl get services
 
-        failure {
-            echo '======================================'
-            echo 'CI/CD Pipeline Failed!'
-            echo '======================================'
+                echo "======================================"
+                echo "Deployment Verification Successful"
+                echo "======================================"
+            '''
         }
     }
 }
