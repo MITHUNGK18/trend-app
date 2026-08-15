@@ -3,8 +3,9 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "mithungk/trend-app:v1"
-        DOCKER_CREDENTIALS = "mithungk"
+        DOCKER_IMAGE = 'mithungk/trend-app:v1'
+        EKS_CLUSTER = 'trend-eks-cluster'
+        AWS_REGION = 'ap-south-1'
     }
 
     stages {
@@ -13,8 +14,14 @@ pipeline {
             steps {
                 sh '''
                     echo "Jenkins CI/CD Pipeline Started"
+
+                    echo "Checking Docker..."
                     docker --version
+
+                    echo "Checking kubectl..."
                     kubectl version --client
+
+                    echo "Checking AWS CLI..."
                     aws --version
                 '''
             }
@@ -24,7 +31,10 @@ pipeline {
             steps {
                 sh '''
                     echo "Building Docker image..."
-                    docker build -t $DOCKER_IMAGE .
+
+                    docker build -t ${DOCKER_IMAGE} .
+
+                    echo "Docker image built successfully."
                 '''
             }
         }
@@ -33,53 +43,110 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: "${DOCKER_CREDENTIALS}",
+                        credentialsId: 'mithungk',
                         usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
                     sh '''
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                        docker push $DOCKER_IMAGE
+                        echo "Logging into Docker Hub..."
+
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        echo "Pushing Docker image..."
+
+                        docker push ${DOCKER_IMAGE}
+
+                        echo "Docker image pushed successfully."
                     '''
                 }
             }
         }
 
         stage('Deploy to EKS') {
-    steps {
-        withCredentials([
-            [$class: 'AmazonWebServicesCredentialsBinding',
-             credentialsId: 'aws-credentials']
-        ]) {
-            sh '''
-                echo "Configuring AWS credentials..."
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials']
+                ]) {
+                    sh '''
+                        echo "======================================"
+                        echo "AWS Authentication"
+                        echo "======================================"
 
-                aws sts get-caller-identity
+                        aws sts get-caller-identity
 
-                echo "Updating kubeconfig for EKS..."
+                        echo "======================================"
+                        echo "Updating EKS kubeconfig"
+                        echo "======================================"
 
-                aws eks update-kubeconfig \
-                    --region ap-south-1 \
-                    --name trend-eks-cluster
+                        aws eks update-kubeconfig \
+                            --region ${AWS_REGION} \
+                            --name ${EKS_CLUSTER}
 
-                echo "Checking EKS cluster..."
+                        echo "======================================"
+                        echo "Checking EKS Nodes"
+                        echo "======================================"
 
-                kubectl get nodes
+                        kubectl get nodes
 
-                echo "Deploying application to EKS..."
+                        echo "======================================"
+                        echo "Deploying Application"
+                        echo "======================================"
 
-                kubectl apply -f kubernetes/deployment.yaml
-                kubectl apply -f kubernetes/service.yaml
+                        kubectl apply -f kubernetes/deployment.yaml
 
-                echo "Checking deployment..."
+                        kubectl apply -f kubernetes/service.yaml
 
-                kubectl get deployments
-                kubectl get pods
-                kubectl get svc
+                        echo "======================================"
+                        echo "Deployment Status"
+                        echo "======================================"
 
-                echo "EKS deployment completed successfully."
-            '''
+                        kubectl get deployments
+
+                        kubectl get pods
+
+                        kubectl get svc
+
+                        echo "======================================"
+                        echo "EKS Deployment Completed"
+                        echo "======================================"
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    echo "Waiting for deployment to become ready..."
+
+                    kubectl rollout status deployment/trend-app --timeout=120s
+
+                    echo "Deployment is ready."
+
+                    kubectl get pods -o wide
+
+                    kubectl get svc
+                '''
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'CI/CD Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'CI/CD Pipeline failed.'
+        }
+
+        always {
+            echo 'Pipeline execution completed.'
         }
     }
 }
