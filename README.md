@@ -1,91 +1,64 @@
-DevOps Practice Project – Dist Directory
+# Trendify - DevOps CI/CD Project
 
-This repository contains the production-ready build files (dist folder) for DevOps practice and deployment exercises.
+## Project Overview
 
-It is intentionally structured to help learners focus on CI/CD pipelines, hosting, containerization, and infrastructure setup rather than application development.
+Trendify is a static web application deployed using a complete DevOps CI/CD pipeline.
 
-📁 What This Repository Contains
+The project demonstrates:
 
-dist/ – Compiled and production-ready static files
+- Docker containerization
+- Docker Hub image management
+- Kubernetes deployment
+- AWS EKS
+- Jenkins CI/CD
+- AWS Load Balancer
+- GitHub source control
 
-HTML
+## Architecture
 
-CSS
+GitHub
+   |
+   v
+Jenkins
+   |
+   v
+Docker Build
+   |
+   v
+Docker Hub
+   |
+   v
+AWS EKS
+   |
+   v
+Kubernetes Service
+   |
+   v
+AWS Load Balancer
+   |
+   v
+Trendify Web Application
 
-JavaScript
+## Technologies Used
 
-Assets (images, fonts, etc.)
+- AWS EC2
+- AWS EKS
+- Kubernetes
+- Docker
+- Docker Hub
+- Jenkins
+- GitHub
+- Nginx
+- Linux Ubuntu
 
-These files are ready to deploy to:
+## Project Structure
 
-Web servers (Nginx / Apache)
-
-Cloud platforms (AWS S3, Azure Blob, GCP Storage)
-
-Containerized environments (Docker + Nginx)
-
-Kubernetes clusters
-
-CI/CD pipeline demonstrations
-
-🎯 Purpose of This Repository
-
-This repository is designed for:
-
-DevOps beginners
-
-CI/CD practice
-
-Deployment pipeline testing
-
-Docker & Kubernetes deployment exercises
-
-Web server configuration practice
-
-Reverse proxy and load balancer setup
-
-The goal is to simulate real-world deployment scenarios using already built application files.
-
-❓ Why is there NO package.json?
-
-You may notice that this repository does not include:
-
-package.json
-
-node_modules
-
-Source code (src/)
-
-Build tools configuration
-
-✅ Reason:
-
-This repository only contains the final production build output (dist), not the development source code.
-
-In a typical project:
-
-Developers write source code.
-
-The project is built using tools like:
-
-Node.js
-
-Webpack
-
-Vite
-
-React (or other frameworks)
-
-A dist/ folder is generated.
-
-Only the production build is deployed to servers.
-
-This repository represents step 4 only.
-
-Since this is already the compiled output:
-
-No dependencies are required
-
-No build process is required
-
-No package.json is needed
+```text
+trend-app/
+├── dist/
+├── kubernetes/
+├── Dockerfile
+├── nginx.conf
+├── Jenkinsfile
+├── .dockerignore
+└── README.md
