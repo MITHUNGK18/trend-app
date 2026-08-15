@@ -1,4 +1,4 @@
-pipeline {
+kpipeline {
 
     agent any
 
@@ -13,7 +13,9 @@ pipeline {
         stage('Environment Check') {
             steps {
                 sh '''
+                    echo "======================================"
                     echo "Jenkins CI/CD Pipeline Started"
+                    echo "======================================"
 
                     echo "Checking Docker..."
                     docker --version
@@ -30,7 +32,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    echo "Building Docker image..."
+                    echo "======================================"
+                    echo "Building Docker Image"
+                    echo "======================================"
 
                     docker build -t ${DOCKER_IMAGE} .
 
@@ -49,7 +53,9 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        echo "Logging into Docker Hub..."
+                        echo "======================================"
+                        echo "Logging into Docker Hub"
+                        echo "======================================"
 
                         echo "$DOCKER_PASSWORD" | docker login \
                             -u "$DOCKER_USERNAME" \
@@ -66,43 +72,84 @@ pipeline {
         }
 
         stage('Deploy to EKS') {
-    steps {
-        withCredentials([[
-            $class: 'AmazonWebServicesCredentialsBinding',
-            credentialsId: 'AIDARCU2PSA3VT3BFUOCD'
-        ]]) {
-            sh '''
-                set -e
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'AIDARCU2PSA3VT3BFUOCD']
+                ]) {
+                    sh '''
+                        set -e
 
-                echo "======================================"
-                echo "AWS Authentication"
-                echo "======================================"
+                        echo "======================================"
+                        echo "AWS Authentication"
+                        echo "======================================"
 
-                aws sts get-caller-identity
+                        aws sts get-caller-identity
 
-                echo "======================================"
-                echo "Configuring EKS access"
-                echo "======================================"
+                        echo "======================================"
+                        echo "Configuring EKS"
+                        echo "======================================"
 
-                aws eks update-kubeconfig \
-                    --region ap-south-1 \
-                    --name trend-eks-cluster
+                        aws eks update-kubeconfig \
+                            --region ${AWS_REGION} \
+                            --name ${EKS_CLUSTER}
 
-                echo "======================================"
-                echo "Checking EKS cluster"
-                echo "======================================"
+                        echo "======================================"
+                        echo "Checking EKS Nodes"
+                        echo "======================================"
 
-                kubectl get nodes
+                        kubectl get nodes
 
-                echo "======================================"
-                echo "Deploying application"
-                echo "======================================"
+                        echo "======================================"
+                        echo "Deploying Application"
+                        echo "======================================"
 
-                kubectl apply -f kubernetes/deployment.yaml
-                kubectl apply -f kubernetes/service.yaml
+                        kubectl apply -f kubernetes/deployment.yaml
 
-                echo "EKS deployment completed successfully."
-            '''
+                        kubectl apply -f kubernetes/service.yaml
+
+                        echo "Application deployed successfully."
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    echo "======================================"
+                    echo "Verifying Deployment"
+                    echo "======================================"
+
+                    kubectl get deployments
+                    kubectl get pods
+                    kubectl get services
+
+                    echo "======================================"
+                    echo "Waiting for Deployment"
+                    echo "======================================"
+
+                    kubectl rollout status deployment/trend-app --timeout=120s
+
+                    echo "======================================"
+                    echo "Deployment Verified Successfully"
+                    echo "======================================"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '======================================'
+            echo 'CI/CD Pipeline Completed Successfully!'
+            echo '======================================'
+        }
+
+        failure {
+            echo '======================================'
+            echo 'CI/CD Pipeline Failed!'
+            echo '======================================'
         }
     }
 }
