@@ -47,39 +47,39 @@ pipeline {
         }
 
         stage('Deploy to EKS') {
-            steps {
-                sh '''
-                    echo "Deploying application to EKS..."
+    steps {
+        withCredentials([
+            [$class: 'AmazonWebServicesCredentialsBinding',
+             credentialsId: 'aws-credentials']
+        ]) {
+            sh '''
+                echo "Configuring AWS credentials..."
 
-                    kubectl apply -f kubernetes/deployment.yaml
-                    kubectl apply -f kubernetes/service.yaml
+                aws sts get-caller-identity
 
-                    kubectl set image deployment/trend-app \
-                        trend-app=$DOCKER_IMAGE
+                echo "Updating kubeconfig for EKS..."
 
-                    kubectl rollout status deployment/trend-app
-                '''
-            }
-        }
+                aws eks update-kubeconfig \
+                    --region ap-south-1 \
+                    --name trend-eks-cluster
 
-        stage('Verify Deployment') {
-            steps {
-                sh '''
-                    echo "Checking Kubernetes deployment..."
-                    kubectl get pods
-                    kubectl get svc
-                '''
-            }
-        }
-    }
+                echo "Checking EKS cluster..."
 
-    post {
-        success {
-            echo 'CI/CD Pipeline completed successfully!'
-        }
+                kubectl get nodes
 
-        failure {
-            echo 'CI/CD Pipeline failed.'
+                echo "Deploying application to EKS..."
+
+                kubectl apply -f kubernetes/deployment.yaml
+                kubectl apply -f kubernetes/service.yaml
+
+                echo "Checking deployment..."
+
+                kubectl get deployments
+                kubectl get pods
+                kubectl get svc
+
+                echo "EKS deployment completed successfully."
+            '''
         }
     }
 }
