@@ -66,87 +66,43 @@ pipeline {
         }
 
         stage('Deploy to EKS') {
-            steps {
-                withCredentials([
-                    [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'aws-credentials']
-                ]) {
-                    sh '''
-                        echo "======================================"
-                        echo "AWS Authentication"
-                        echo "======================================"
+    steps {
+        withCredentials([[
+            $class: 'AmazonWebServicesCredentialsBinding',
+            credentialsId: 'AIDARCU2PSA3VT3BFUOCD'
+        ]]) {
+            sh '''
+                set -e
 
-                        aws sts get-caller-identity
+                echo "======================================"
+                echo "AWS Authentication"
+                echo "======================================"
 
-                        echo "======================================"
-                        echo "Updating EKS kubeconfig"
-                        echo "======================================"
+                aws sts get-caller-identity
 
-                        aws eks update-kubeconfig \
-                            --region ${AWS_REGION} \
-                            --name ${EKS_CLUSTER}
+                echo "======================================"
+                echo "Configuring EKS access"
+                echo "======================================"
 
-                        echo "======================================"
-                        echo "Checking EKS Nodes"
-                        echo "======================================"
+                aws eks update-kubeconfig \
+                    --region ap-south-1 \
+                    --name trend-eks-cluster
 
-                        kubectl get nodes
+                echo "======================================"
+                echo "Checking EKS cluster"
+                echo "======================================"
 
-                        echo "======================================"
-                        echo "Deploying Application"
-                        echo "======================================"
+                kubectl get nodes
 
-                        kubectl apply -f kubernetes/deployment.yaml
+                echo "======================================"
+                echo "Deploying application"
+                echo "======================================"
 
-                        kubectl apply -f kubernetes/service.yaml
+                kubectl apply -f kubernetes/deployment.yaml
+                kubectl apply -f kubernetes/service.yaml
 
-                        echo "======================================"
-                        echo "Deployment Status"
-                        echo "======================================"
-
-                        kubectl get deployments
-
-                        kubectl get pods
-
-                        kubectl get svc
-
-                        echo "======================================"
-                        echo "EKS Deployment Completed"
-                        echo "======================================"
-                    '''
-                }
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                sh '''
-                    echo "Waiting for deployment to become ready..."
-
-                    kubectl rollout status deployment/trend-app --timeout=120s
-
-                    echo "Deployment is ready."
-
-                    kubectl get pods -o wide
-
-                    kubectl get svc
-                '''
-            }
-        }
-    }
-
-    post {
-
-        success {
-            echo 'CI/CD Pipeline completed successfully!'
-        }
-
-        failure {
-            echo 'CI/CD Pipeline failed.'
-        }
-
-        always {
-            echo 'Pipeline execution completed.'
+                echo "EKS deployment completed successfully."
+            '''
         }
     }
 }
