@@ -57,9 +57,7 @@ pipeline {
                         echo "Logging into Docker Hub"
                         echo "======================================"
 
-                        echo "$DOCKER_PASSWORD" | docker login \
-                            -u "$DOCKER_USERNAME" \
-                            --password-stdin
+                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
                         echo "Pushing Docker image..."
 
@@ -75,7 +73,9 @@ pipeline {
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'AIDARCU2PSA3VT3BFUOCD']
+                     credentialsId: 'aws-credentials',
+                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
                 ]) {
                     sh '''
                         set -e
@@ -105,7 +105,6 @@ pipeline {
                         echo "======================================"
 
                         kubectl apply -f kubernetes/deployment.yaml
-
                         kubectl apply -f kubernetes/service.yaml
 
                         echo "Application deployed successfully."
@@ -115,36 +114,52 @@ pipeline {
         }
 
         stage('Verify Deployment') {
-    steps {
-        withCredentials([
-            [$class: 'AmazonWebServicesCredentialsBinding',
-             credentialsId: 'aws-credentials',
-             accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
-        ]) {
-            sh '''
-                set -e
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials',
+                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']
+                ]) {
+                    sh '''
+                        set -e
 
-                echo "======================================"
-                echo "Verifying Deployment"
-                echo "======================================"
+                        echo "======================================"
+                        echo "Verifying Deployment"
+                        echo "======================================"
 
-                echo "Checking AWS Authentication..."
-                aws sts get-caller-identity
+                        echo "Checking AWS Authentication..."
+                        aws sts get-caller-identity
 
-                echo "Checking Kubernetes Deployments..."
-                kubectl get deployments
+                        echo "Checking Kubernetes Deployments..."
+                        kubectl get deployments
 
-                echo "Checking Pods..."
-                kubectl get pods
+                        echo "Checking Pods..."
+                        kubectl get pods
 
-                echo "Checking Services..."
-                kubectl get services
+                        echo "Checking Services..."
+                        kubectl get services
 
-                echo "======================================"
-                echo "Deployment Verification Successful"
-                echo "======================================"
-            '''
+                        echo "======================================"
+                        echo "Deployment Verification Successful"
+                        echo "======================================"
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "======================================"
+            echo "CI/CD Pipeline Completed Successfully!"
+            echo "======================================"
+        }
+
+        failure {
+            echo "======================================"
+            echo "CI/CD Pipeline Failed!"
+            echo "======================================"
         }
     }
 }
