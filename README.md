@@ -1,64 +1,48 @@
-# Trendify - DevOps CI/CD Project
+# Trendify - Production-Ready Application Deployment
 
-## Project Overview
+## 📌 Project Overview
 
-Trendify is a static web application deployed using a complete DevOps CI/CD pipeline.
+This project demonstrates the deployment of the **Trendify React application** into a production-ready environment using containerization, CI/CD, Kubernetes, AWS EKS, Prometheus, and Grafana.
 
-The project demonstrates:
+The application is containerized using Docker, automated through Jenkins, deployed on an Amazon EKS Kubernetes cluster, exposed externally using a Kubernetes LoadBalancer, and monitored using Prometheus and Grafana.
 
-- Docker containerization
-- Docker Hub image management
-- Kubernetes deployment
-- AWS EKS
-- Jenkins CI/CD
-- AWS Load Balancer
-- GitHub source control
+---
 
-## Architecture
-
-GitHub
-   |
-   v
-Jenkins
-   |
-   v
-Docker Build
-   |
-   v
-Docker Hub
-   |
-   v
-AWS EKS
-   |
-   v
-Kubernetes Service
-   |
-   v
-AWS Load Balancer
-   |
-   v
-Trendify Web Application
-
-## Technologies Used
-
-- AWS EC2
-- AWS EKS
-- Kubernetes
-- Docker
-- Docker Hub
-- Jenkins
-- GitHub
-- Nginx
-- Linux Ubuntu
-
-## Project Structure
+## 🏗️ Architecture
 
 ```text
-trend-app/
-├── dist/
-├── kubernetes/
-├── Dockerfile
-├── nginx.conf
-├── Jenkinsfile
-├── .dockerignore
-└── README.md
+                         Developer
+                             │
+                             ▼
+                          GitHub
+                             │
+                             ▼
+                          Jenkins
+                         CI/CD Pipeline
+                             │
+                             ▼
+                        Docker Image
+                             │
+                             ▼
+                         AWS EKS
+                    ┌────────┴────────┐
+                    │                 │
+                    ▼                 ▼
+              Kubernetes          Monitoring
+              Deployment           Namespace
+                    │                 │
+                    ▼          ┌──────┼─────────┐
+              Trendify Pod      │      │         │
+                    │           ▼      ▼         ▼
+                    │      Prometheus Node   Kube State
+                    │       Exporter Exporter  Metrics
+                    │           │
+                    ▼           ▼
+              Kubernetes      Grafana
+               Service           │
+                    │            ▼
+                    ▼       Monitoring
+             AWS LoadBalancer  Dashboard
+                    │
+                    ▼
+                   User
